@@ -1,0 +1,82 @@
+// Steward — resource/room booking app schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+}
+
+enum Role {
+  ADMIN
+  CUSTODIAN
+  USER
+}
+
+enum Dept {
+  CSE
+  CSE_AI
+  EAC
+  EEE
+  ECE
+  ELC
+  ME
+  OTHER
+}
+
+model User {
+  id        String   @id // Clerk userId
+  email     String   @unique
+  name      String?
+  dept      Dept?
+  deptOther String?
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  capacity    Int      @default(1)
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings Booking[]
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  status    BookingStatus @default(PENDING)
+  notes     String?
+  batch     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Clerk user id (string), not a local FK — auth is handled by Clerk.
+  userId    String
+  userEmail String?
+
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId, startTime, endTime])
+  @@index([userId])
+}
